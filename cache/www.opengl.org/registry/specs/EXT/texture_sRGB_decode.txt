@@ -1,0 +1,315 @@
+Name
+
+    EXT_texture_sRGB_decode
+
+Name Strings
+
+    GL_EXT_texture_sRGB_decode
+
+Contributors
+
+    Matt Collins, Apple Inc
+    Alex Eddy, Apple Inc
+    Mark Kilgard, NVIDIA
+    Chris Niederauer, Apple Inc
+    Richard Schreyer, Apple Inc
+    Henri Verbeet, CodeWeavers
+
+Contact
+
+    Matt Collins, Apple Inc (matthew.collins 'at' apple.com)
+
+Status
+
+    Complete
+
+Version
+
+    Date: November 18, 2010
+    Revision: 0.81
+
+Number
+
+    402
+
+Dependencies
+
+    OpenGL 2.1 or EXT_texture_sRGB required.
+    
+    EXT_texture_compression_s3tc interacts with this extension.
+
+    ARB_sampler_objects interacts with this extension.
+
+    This extension is written against the OpenGL 2.1 (December 1, 2006)
+    specification.
+ 
+Overview
+ 
+    The ARB_texture_sRGB extension provides a texture format stored in the
+    sRGB color space. Sampling one of these textures will always return the
+    color value decoded into a linear color space. However, an
+    application may wish to sample and retrieve the undecoded sRGB data from the
+    texture and manipulate that directly.
+ 
+    This extension adds a Texture Parameter and Sampler Object parameter to
+    allow sRGB textures to be read directly, without decoding.
+    
+    The new parameter, TEXTURE_SRGB_DECODE_EXT controls whether the 
+    decoding happens at sample time. It only applies to textures with an 
+    internal format that is sRGB and is ignored for all other textures. 
+    This value defaults to DECODE_EXT, which indicates the texture 
+    should be decoded to linear color space.
+ 
+New Procedures and Functions
+ 
+    None
+ 
+New Tokens
+ 
+    Accepted by the <pname> parameter of TexParameterf, TexParameteri,
+    GetTexParameterfv, GetTexParameteriv, SamplerParameteri,
+    SamplerParameterf, SamplerParameteriv, SamplerParameterfv,
+    SamplerParameterIiv, SamplerParameterIuiv, GetSamplerParameteriv,
+    GetSamplerParameterfv, GetSamplerParameterIiv, and GetSamplerParameterIuiv:
+ 
+        TEXTURE_SRGB_DECODE_EXT        0x8A48
+
+    Accepted by the <enum> parameter of TexParameterf, TexParameteri,
+    SamplerParameteri, SamplerParameterf, SamplerParameteriv, SamplerParameterfv,
+    SamplerParameterIiv and SamplerParameterIuiv:
+
+        DECODE_EXT             0x8A49
+        SKIP_DECODE_EXT        0x8A4A
+        
+Additions to Chapter 3 of the 2.1 Specification (Rasterization)
+
+    Add 1 new row to Table 3.18 (page 169).
+    
+    Name                       Type       Initial value     Legal values
+    ----                       ----       -------------     ------------
+    TEXTURE_SRGB_DECODE_EXT    enum        DECODE_EXT       DECODE_EXT, SKIP_DECODE_EXT
+    
+-- Section 3.8.15, sRGB Color Decoding
+
+    (section was previously titled sRGB Color Conversion)
+
+    Replace current text with the following:
+    
+    If the currently bound texture's internal format is one
+    of SRGB_EXT, SRGB8_EXT, SRGB_ALPHA_EXT, SRGB8_ALPHA8_EXT,
+    SLUMINANCE_ALPHA_EXT, SLUMINANCE8_ALPHA8_EXT, SLUMINANCE_EXT,
+    SLUMINANCE8_EXT, COMPRESSED_SRGB_EXT, COMPRESSED_SRGB_ALPHA_EXT,
+    COMPRESSED_SLUMINANCE_EXT, COMPRESSED_SLUMINANCE_ALPHA_EXT,
+    COMPRESSED_SRGB_S3TC_DXT1_EXT, COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,
+    COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, or
+    COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, and the TEXTURE_SRGB_DECODE_EXT
+    parameter for the current texture unit is DECODE_EXT, the red, green, and blue
+    components are decoded from an sRGB color space to a linear color
+    space as part of filtering described in sections 3.8.8 and 3.8.9.
+    Any alpha component is left unchanged. Ideally, implementations
+    should perform this color decoding on each sample prior to filtering
+    but implementations are allowed to perform this decoding after
+    filtering (though this post-filtering approach is inferior to
+    decoding from sRGB prior to filtering).
+
+    The decoding from an sRGB encoded component, cs, to a linear
+    component, cl, is as follows.
+
+            {  cs / 12.92,                 cs <= 0.04045
+       cl = {
+            {  ((cs + 0.055)/1.055)^2.4,   cs >  0.04045
+
+    Assume cs is the sRGB component in the range [0,1].
+    
+    If the TEXTURE_SRGB_DECODE_EXT parameter is SKIP_DECODE_EXT, the value 
+    is returned without decoding. The TEXTURE_SRGB_DECODE_EXT
+    parameter state is ignored for any texture with an internal format
+    not explicitly listed above, as no decoding needs to be done.
+    
+Dependencies on ARB_sampler_objects
+
+    If ARB_sampler_objects is NOT supported, delete all references to
+    SamplerParameter and GetSamplerParameter.
+
+Dependencies on EXT_texture_compression_s3tc
+
+    If EXT_texture_compression_s3tc is NOT supported, delete 
+    COMPRESSED_SRGB_S3TC_DXT1_EXT, COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,
+    COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, and
+    COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT from Section 3.8.15.
+
+Errors
+
+    INVALID_ENUM is generated if the <pname> parameter of
+    TexParameter[iIf,Iui][v], GetTexParameter[iIf,Iui][v],
+    SamplerParameter[iIf,Iui][v], or GetSamplerParameter[iIf,Iui][v].
+    INVALID_ENUM is also generated if the <enum> parameter of
+    TexParameter[iIf,Iui][v], GetTexParameter[iIf,Iui][v],
+    SamplerParameter[iIf,Iui][v] is not one of DECODE_EXT or SKIP_DECODE_EXT.
+
+New State
+
+    In table 6.20, Texture Objects, p. 384, add the following:
+
+    Get Value                     Type  Get Command           Initial Value  Description       Sec.   Attribute
+    ----------------------------  ----  --------------------  -------------  ----------------  -----  ---------
+    TEXTURE_SRGB_DECODE_EXT       Z_2   GetTexParameter[if]v  DECODE_EXT     indicates when    3.8.15 texture
+                                                                             sRGB textures
+                                                                             are decoded from
+                                                                             sRGB or the
+                                                                             decoding step is
+                                                                             skipped
+
+    Add to Table 6.23 of ARB_sampler_objects, "Textures (state per sampler object)":
+
+    Get Value                     Type  Get Command           Initial Value  Description       Sec.   Attribute
+    ----------------------------  ----  --------------------  -------------  ----------------  -----  ---------
+    TEXTURE_SRGB_DECODE_EXT       Z_2   GetTexParameter[if]v  DECODE_EXT     indicates when    3.8.15 texture
+                                                                             sRGB textures
+                                                                             are decoded from
+                                                                             sRGB or the
+                                                                             decoding step is
+                                                                             skipped
+
+Issues
+
+    1) What should this extension be called?
+
+        UNRESOLVED: EXT_texture_sRGB_decode
+
+        The purpose of this extension is to allow developers to skip
+        the sRGB-to-linear decoding detailed in Section 3.8.15.
+        Since this is a decoding of the sRGB value into linear space, we
+        use that word to describe the pname. The enum indicating this
+        decoding is to happen is DECODE, as that is what the GL will do.
+        The enum that indicates this decoding is to be skipped is then
+        appropriately, SKIP_DECODE.
+
+    2) Should this allow for filters other than NEAREST on undecoded
+       sRGB values?
+    
+        RESOLVED: YES
+        
+        Hardware supports this, and it is left up to the programmer.
+
+    3) Do we generate an error if TEXTURE_SRGB_DECODE_EXT is changed for normal
+       textures?
+       
+        RESOLVED: NO
+        
+        This is similar to the ARB_shadow and ARB_framebuffer_sRGB extensions - the flag
+        is ignored for non-sRGB texture internal formats. 
+
+    4) Should we add forward-looking support for ARB_sampler_objects?
+
+        RESOLVED: YES
+
+        If ARB_sampler_objects exists in the implementation, the sampler
+        objects should also include this parameter per sampler.
+
+    
+        
+    5) What is the expense of changing the sRGB-ness of a texture without
+       this extension?
+
+        RESOLVED:  If an application wants to use a texture with sRGB
+        texels and then switch to using it with linear filtering (or vice
+        versa), OpenGL without this extension requires the application
+        to read back all the texels in all the mipmap levels of all the
+        images, and respecify a different texture object with a different
+        texture format.  This is very expensive.
+
+        With this extension, the driver can simply change the underlying
+        hardware texture format associated with the texture to perform
+        sRGB conversion on filtering or not.  This is very inexpensive.
+
+    6) Do any major games or game engines depend on the ability to
+       change the sRGB-ness of textures?
+
+        RESOLVED:  Yes, Valve's Source engine used by Half-Life 2,
+        Counter-Strike: Source, and Left 4 Dead; and Unreal Engine 3
+        games including Unreal Tournament 3 and BioShock.
+
+        These games and their underlying engines repeatedly render linear
+        color values into textures and then texture from the rendered
+        textures with sRGB texture filtering.
+
+    
+        
+    7) Why not simply allow changing whether a standard GL_RGBA8
+       can perform an sRGB color space conversion for filtering?
+
+        RESOLVED:  Allowing this would create a consistency problem.
+        Why would the TEXTURE_SRGB_DECODE_EXT parameter not
+        apply to GL_RGB4 or GL_RGB12 textures too?  In practice,
+        sRGB color conversion for texture filtering is only typically
+        supported in hardware for a small subset of texture formats
+        (corresponding to the sized internal formats introduced by the
+        EXT_texture_sRGB specification).  It's essentially only 8-bit
+        fixed-point unsigned textures where sRGB color conversion makes
+        sense.  And the initial value of the parameter (GL_DECODE_EXT) would be
+        appropriate for sRGB texture formats but not conventional linear
+        texture formats (as no decoding needs to be done). Having the 
+        
+        texture parameter apply just to sRGB texture eliminates the ambiguity
+        of which conventional texture formats can and cannot have sRGB decoding
+        applied to them. This also eliminates the burden of having every future
+        
+        texture format extension specify whether or not the sRGB decoding parameter
+        applies to them.
+
+        Direct3D 9 handles this situation by advertising for each surface
+        format (which double as texture formats) a D3DUSAGE_QUERY_SRGBREAD
+        parameter.  In practice, Direct3D 9 implementation only advertise
+        the D3DUSAGE_QUERY_SRGBREAD parameter for 8-bit fixed-point
+        unsigned RGB or luminance formats, corresponding to the formats
+        available from EXT_texture_sRGB.
+
+    8) Does there need to be a control for whether to update (and
+       possibly blend) framebuffer pixels in sRGB or linear color space?
+
+        RESOLVED:  The EXT_framebuffer_sRGB extension (made core in OpenGL
+        3.0) already has this capability with the GL_FRAMEBUFFER_SRGB_EXT
+        enable.
+
+        The GL_FRAMEBUFFER_SRGB_CAPABLE_EXT query parameter roughly
+        corresponds to Direct3D 9's D3DUSAGE_QUERY_SRGBWRITE parameter.
+
+    9) How is the border color handled when toggling sRGB color
+       conversion for blending of sRGB textures?
+
+        RESOLVED:  Consistent with the EXT_texture_sRGB specification, the
+        border color is always specified as a linear value (never sRGB).
+        So changing the TEXTURE_SRGB_DECODE_EXT parameter will
+        not affect the resulting sampled border color.
+
+        If an implementation were to store the texture border color in a
+        format consistent with the texel format (including the sRGB color
+        space), this would require such implementations to convert the
+        (linear) texture border RGB components to sRGB space.
+        In this case, this would mean an implementation to re-specify
+        the texture border color state in the hardware when the
+        TEXTURE_SRGB_DECODE_EXT parameter for an sRGB texture
+        changed.
+
+        Alternatively, if the implementation stored the texture
+        border color in texture formant-independent format (say 4
+        floating-point values) and always treated this as a linear RGB
+        color for purposes of texture filtering, no sRGB conversion
+        of the texture border color would ever occur.  In this case,
+        this would mean an implementation would NOT need to re-specify
+        the texture border color state in the hardware when the
+        TEXTURE_SRGB_DECODE_EXT parameter for an sRGB texture
+        changed.
+
+Revision History
+
+        Rev.    Date    Author    Changes
+        ----  --------  --------  -------------------------------------
+        0.81  11/18/10  mattc     Fixed language in error section. 
+                                  Cleaned up which functions take which tokens.
+        0.8   11/18/10  mattc     Added issues from EXT_texture_sRGB_decode
+                                  
+                                  for background info. Cleaned up layout.
+        0.71  11/18/10  mattc     Adapted apple_texture_linearize_srgb into
+                                  this specification.
