@@ -13,7 +13,7 @@ This project is a one file Python_ script that parses:
 
 It's aim is mainly to build :
 
-- Everything to generate bindinds in one XML file
+- Everything to generate bindings in one XML file
 - More complicated D bindings for GL/GLU/GLX/GLEXT in one module
 
 
