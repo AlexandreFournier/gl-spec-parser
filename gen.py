@@ -156,7 +156,7 @@ for key in URLS.keys():
 	root = html.parse(file)
 	uris = root.xpath(URLS[key]['xpath'])
 	URLS[key]['list'] = filter(lambda x : re.match(URLS[key]['regexp'], x), uris)
-	URLS[key]['list'].sort
+	URLS[key]['list'].sort()
 
 # An ugly XLST stylesheet to render the documentation
 XSLT_params = etree.XSLT(etree.XML('''
