@@ -36,7 +36,7 @@ Just read this quote_ from the OpenGL_'s discussion board:
 
         FYI, there is no problem defining the "perfect spec format" to capture all .spec information (porting everything to XML is less than a day's worth of work). The issue is that drivers have come to rely on the .spec files to build and the IHVs (rightly or not) resist any change to their build process. (No, I'm not making this up - you can search these forums for the exact quote if you wish. It was made by Jon Leech around the 3.0 release, if I remember correctly.)
 
-        The irony on the matter is this quote on the registry, added around 2007: **"Yes, these databases should be moved to a modern XML-based format. Patience."** :P
+        The irony on the matter is this quote on the registry, added around 2007 [edit: `11/17/2006 <http://replay.waybackmachine.org/20061117034351/http://www.opengl.org/registry/>`__]: **"Yes, these databases should be moved to a modern XML-based format. Patience."** :P
 
 License
 =======
