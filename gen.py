@@ -24,6 +24,8 @@ Please contact the author or visit the project page for more information:\n
 %s
 ''' % (sys.argv[0], str(datetime.now()), GITHUB_URL)
 
+# 'base' and 'index' shoud be the same in 99% of cases,
+# but it's faster to download .xml on http rather than webdav over https
 URLS = {
 	'gl2' : {
 		'format' : 'docbook',
@@ -72,7 +74,21 @@ URLS = {
 		'index'  : 'http://www.opengl.org/registry/',
 		'base'   : 'http://www.opengl.org/registry/',
 		'list'   : [],
-	}
+	},
+	'glenums' : {
+		'format' : 'dotspec',
+		'regexp' : r'^/api/[a-z]+\.spec$',
+		'xpath'  : '//a/@href',
+		'index'  : 'http://www.opengl.org/registry/',
+		'base'   : 'http://www.opengl.org/registry/',
+	},
+	'gltypes' : { # we don't really care about those
+		'format' : 'dottm',
+		'regexp' : r'^/api/[a-z]+\.tm$',
+		'xpath'  : '//a/@href',
+		'index'  : 'http://www.opengl.org/registry/',
+		'base'   : 'http://www.opengl.org/registry/',
+	},
 }
 
 # At least this is less ugly than Khronos specifications
@@ -129,7 +145,7 @@ class Resolver(etree.Resolver):
 			if not os.path.exists(locPath):
 				os.makedirs(locPath)
 			if locFile.endswith('/'):
-				locFile += "INDEX"
+				locFile += 'INDEX'
 			if not os.path.exists(locFile):
 				print 'retrieving %s' % system_url
 				urlretrieve(system_url, locFile)
@@ -184,7 +200,7 @@ XSLT_params = etree.XSLT(etree.XML('''
 </xsl:stylesheet>
 '''))
 
-class ManpageParser:
+class ReferenceParser:
 	'''A class to parse Khronos OpenGL docbook man pages'''
 
 	def __init__(self, name):
@@ -225,7 +241,12 @@ class ManpageParser:
 
 class EnumerantParser:
 	'''A class to parse Khronos OpenGL .spec'''
-	pass
+
+	def __init__(self):
+		self.enumerants = EnumerantList()
+	
+	def parse_file(self, file):
+		pass
 
 class ExtensionParser:
 	'''A class to parse Khronos extensions specifications,
@@ -428,41 +449,35 @@ class ExtensionParser:
 			raise Exception('type not found : %s' % type)
 		return types[type] + '*' * ptrs
 
-class Documentation(list):
-	'''Abstraction class for documentation string'''
-
-	def toXML(self):
-		node = etree.Element('documentation')
-		node.text = '\n'.join(self)
-		return node
-
 class Module:
 	'''Abstraction class for a module (D module, C header, SWIG specification, etc.)'''
 
 	def __init__(self, name):
 		self.name       = name
-		self.aliases    = AliasList()
 		self.libraries  = LibraryList()
 		self.extensions = None
+		self.enumerants = None
 
 	def digest(self, name):
-		parser_man = ManpageParser(name)
-		parser_ext = ExtensionParser()
 		for file in URLS[name]['list']:
 			file = '%s%s' % (URLS[name]['base'], file)
 			print >> sys.stderr, 'parsing %s' % file
 			if URLS[name]['format'] == 'docbook':
-				parser_man.parse_file(file)
+				parser = ReferenceParser(name)
+				parser.parse_file(file)
+				self.libraries.append(parser.library)
 			if URLS[name]['format'] == 'extspec':
-				parser_ext.parse_file(file)
-		if len(parser_man.library) > 0:
-			self.libraries.append(parser_man.library)
-		if len(parser_ext.extensions) > 0:
-			self.extensions = parser_ext.extensions
+				parser = ExtensionParser()
+				parser.parse_file(file)
+				self.extensions = parser.extensions
+			if URLS[name]['format'] == 'dotspec':
+				parser = EnumerantParser()
+				parser.parse_file(file)
+				self.enumerants = parser.enumerants
+			if URLS[name]['format'] == 'dottm':
+				pass # yes, we really don't care
 
 	def append(self, object):
-		if isinstance(object, Alias):
-			self.aliases.append(object)
 		if isinstance(object, FunctionList):
 			self.functionlists.append(object)
 
@@ -512,12 +527,20 @@ class Module:
 	def toXML(self):
 		node = etree.Element('module', name = self.name)
 		node.append(etree.Comment(GENERATION))
-		if len(self.aliases):
-			node.append(self.aliases.toXML())
-		if len(self.libraries):
+		if self.enumerants != None and len(self.enumerants):
+			node.append(self.enumerants.toXML())
+		if self.libraries != None and len(self.libraries):
 			node.append(self.libraries.toXML())
 		if self.extensions != None and len(self.extensions):
 			node.append(self.extensions.toXML())
+		return node
+
+class Documentation(list):
+	'''Abstraction class for documentation string'''
+
+	def toXML(self):
+		node = etree.Element('documentation')
+		node.text = '\n'.join(self)
 		return node
 
 class LibraryList(list):
@@ -616,6 +639,9 @@ class Const:
 				name  = self.name,
 				value = self.value,
 				type  = self.type)
+
+EnumerantList = ConstList
+Enumerant = Const
 
 class AliasList(list):
 	'''Abstraction class for a list of D alias'''
@@ -753,10 +779,10 @@ if __name__ == '__main__':
 		parser.print_help()
 		sys.exit(1)
 
-	module = Module(args[0])
+	module = Module('gl')
 
 	if options.all or options.glenums:
-		module = Module('enums')
+		module.digest('glenums')
 
 	if options.all or options.gl2:
 		module.digest('gl2')
