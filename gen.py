@@ -77,14 +77,21 @@ URLS = {
 	},
 	'glenums' : {
 		'format' : 'dotspec',
-		'regexp' : r'^/api/[a-z]+\.spec$',
+		'regexp' : r'^api/[a-z]*enum(?:ext)?\.spec$',
+		'xpath'  : '//a/@href',
+		'index'  : 'http://www.opengl.org/registry/',
+		'base'   : 'http://www.opengl.org/registry/',
+	},
+	'glfuncs' : { # we don't really care about those
+		'format' : 'dotspec',
+		'regexp' : r'^api/w?glx?(?:ext)?\.spec$',
 		'xpath'  : '//a/@href',
 		'index'  : 'http://www.opengl.org/registry/',
 		'base'   : 'http://www.opengl.org/registry/',
 	},
 	'gltypes' : { # we don't really care about those
 		'format' : 'dottm',
-		'regexp' : r'^/api/[a-z]+\.tm$',
+		'regexp' : r'^api/[a-z]+\.tm$',
 		'xpath'  : '//a/@href',
 		'index'  : 'http://www.opengl.org/registry/',
 		'base'   : 'http://www.opengl.org/registry/',
@@ -204,7 +211,7 @@ class ReferenceParser:
 	'''A class to parse Khronos OpenGL docbook man pages'''
 
 	def __init__(self, name):
-		self.library = Library(name)
+		self.functions = None
 
 	def parse_file(self, file):
 		dom = etree.parse(file)
@@ -237,7 +244,7 @@ class ReferenceParser:
 			node = XSLT_params(variablelist)
 			ddoc = unicode(node.getroot().text)
 			lst.addDocumentation(ddoc)
-		self.library.append(lst)
+		self.functions = lst
 
 class EnumerantParser:
 	'''A class to parse Khronos OpenGL .spec'''
@@ -246,7 +253,36 @@ class EnumerantParser:
 		self.enumerants = EnumerantList()
 	
 	def parse_file(self, file):
-		pass
+		file = Resolver.cache(file)
+		lines = open(file, 'r').read().splitlines()
+
+		prefix = 'GL_'
+		if 'glx' in file:
+			prefix = 'GLX_'
+		if 'wgl' in file:
+			prefix = 'WGL_'
+
+		enums = {}
+		for line in lines:
+			pos = line.find('#')
+			if pos != -1:
+				line = line[0:pos]
+			line = line.strip()
+			if len(line) == 0:
+				continue
+			m = re.match('^([a-zA-Z0-9_]+)\s*=\s*([a-zA-Z0-9_]+)', line)
+			if m:
+				name = m.group(1)
+				data = m.group(2)
+				if not name.startswith(prefix):
+					name = prefix + name
+				enums[name] = data
+		for key,enum in enums.items():
+			if enum in enums.keys():
+				enums[key] = enums[enum]
+		for key,enum in enums.items():
+			self.enumerants.append(Enumerant(key, enum))
+			
 
 class ExtensionParser:
 	'''A class to parse Khronos extensions specifications,
@@ -266,7 +302,7 @@ class ExtensionParser:
 	}
 
 	def __init__(self):
-		self.extensions = ExtensionList()
+		self.extension = None
 
 	@staticmethod
 	def clean_function(str):
@@ -295,28 +331,25 @@ class ExtensionParser:
 				line = line.lstrip()
 				self.parse_line(line, section)
 
-	_extension = None 
 	_func = ""
 	def parse_line(self, line, section):
 		if section == 'Name':
 			m = re.match(self.re['name'], line)
 			if not m:
 				return
-			if self._extension != None:
-				self.extensions.append(self._extension)
 			name = "%s_%s" % (m.group(1), m.group(2))
-			self._extension = Extension(name)
+			self.extension = Extension(name)
 		if section == 'Name String' or section == 'Name Strings':
 			m = re.match(self.re['name'], line)
 			if m:
-				self._extension.append(self._extension.name)
+				self.extension.append(self.extension.name)
 			m = re.match(self.re['extname'], line)
 			if m:
 				name = m.group(0)
 				m = re.match(self.re['tprefix'], line)
 				if not m:
 					name = "GL_" + name
-				self._extension.append(name)
+				self.extension.append(name)
 		if section == 'New Procedures and Functions':
 			m = re.match(self.re['eofunc'], line)
 			if m:
@@ -334,7 +367,7 @@ class ExtensionParser:
 						type = self.resolve_type(' '.join(param[0:-1]))
 						name = param[-1]
 						function.addParameter(type, name)
-					self._extension.append(function)
+					self.extension.append(function)
 				self._func = ""
 			else:
 				self._func += ' %s' % line
@@ -345,7 +378,7 @@ class ExtensionParser:
 				value = m.group(2)
 				if not name.startswith('GL_'):
 					name = 'GL_' + name
-				self._extension.append(Const(name, value))
+				self.extension.append(Const(name, value))
 	
 	def resolve_type(self, type):
 		types = {
@@ -459,23 +492,34 @@ class Module:
 		self.enumerants = None
 
 	def digest(self, name):
-		for file in URLS[name]['list']:
-			file = '%s%s' % (URLS[name]['base'], file)
-			print >> sys.stderr, 'parsing %s' % file
-			if URLS[name]['format'] == 'docbook':
+		if URLS[name]['format'] == 'docbook':
+			library = Library(name)
+			for file in URLS[name]['list']:
+				file = '%s%s' % (URLS[name]['base'], file)
+				print >> sys.stderr, 'parsing %s' % file
 				parser = ReferenceParser(name)
 				parser.parse_file(file)
-				self.libraries.append(parser.library)
-			if URLS[name]['format'] == 'extspec':
+				library.append(parser.functions)
+			self.libraries.append(library)
+
+		if URLS[name]['format'] == 'extspec':
+			self.extensions = ExtensionList()
+			for file in URLS[name]['list']:
+				file = '%s%s' % (URLS[name]['base'], file)
+				print >> sys.stderr, 'parsing %s' % file
 				parser = ExtensionParser()
 				parser.parse_file(file)
-				self.extensions = parser.extensions
-			if URLS[name]['format'] == 'dotspec':
+				if parser.extension != None:
+					self.extensions.append(parser.extension)
+
+		if URLS[name]['format'] == 'dotspec':
+			self.enumerants = EnumerantList()
+			for file in URLS[name]['list']:
+				file = '%s%s' % (URLS[name]['base'], file)
+				print >> sys.stderr, 'parsing %s' % file
 				parser = EnumerantParser()
 				parser.parse_file(file)
-				self.enumerants = parser.enumerants
-			if URLS[name]['format'] == 'dottm':
-				pass # yes, we really don't care
+				self.enumerants += parser.enumerants
 
 	def append(self, object):
 		if isinstance(object, FunctionList):
@@ -505,7 +549,7 @@ class Module:
 			Alias('GLintptr',   'ptrdiff_t'),
 			Alias('GLsizeptr',  'ptrdiff_t')]:
 			alias.toD(writer)
-		if len(self.functionlists) > 0:
+		if self.functionlists:
 			writer.writeln()
 			writer.writeln('extern(C)')
 			writer.writeln('{')
@@ -517,7 +561,7 @@ class Module:
 				functionlist.toD(writer)
 			writer.deindent()
 			writer.writeln('}')
-		if len(self.extensions) > 0:
+		if self.extensions:
 			writer.writeln()
 			for i, extension in enumerate(self.extensions):
 				if i > 0:
@@ -527,11 +571,11 @@ class Module:
 	def toXML(self):
 		node = etree.Element('module', name = self.name)
 		node.append(etree.Comment(GENERATION))
-		if self.enumerants != None and len(self.enumerants):
+		if self.enumerants:
 			node.append(self.enumerants.toXML())
-		if self.libraries != None and len(self.libraries):
+		if self.libraries:
 			node.append(self.libraries.toXML())
-		if self.extensions != None and len(self.extensions):
+		if self.extensions:
 			node.append(self.extensions.toXML())
 		return node
 
