@@ -34,7 +34,7 @@ Just read this quote_ from the OpenGL_'s discussion board:
 
         The main issue is that the .spec files change over time. New directives are being added, old ones fall in disuse or start being used inconsistently... Fortunately, things have gotten better after the 3.0 release - several long-standing bugs have been fixed and the editors seem to have gotten much more aggressive. I think the new deprecation directives have played a large part in this.
 
-        FYI, there is no problem defining the "perfect spec format" to capture all .spec information (porting everything to XML is less than a day's worth of work). The issue is that drivers have come to rely on the .spec files to build and the IHVs (rightly or not) resist any change to their build process. (No, I'm not making this up - you can search these forums for the exact quote if you wish. It was made by Jon Leech around the 3.0 release, if I remember correctly.)
+        FYI, there is no problem defining the "perfect spec format" to capture all .spec information (porting everything to XML is less than a day's worth of work). The issue is that drivers have come to rely on the .spec files to build and the IHVs (rightly or not) resist any change to their build process. (No, I'm not making this up - you can search these forums for the `exact quote`_ if you wish. It was made by Jon Leech around the 3.0 release, if I remember correctly.)
 
         The irony on the matter is this quote on the registry, added around 2007 [edit: `11/17/2006 <http://replay.waybackmachine.org/20061117034351/http://www.opengl.org/registry/>`__]: **"Yes, these databases should be moved to a modern XML-based format. Patience."** :P
 
@@ -75,3 +75,4 @@ DEALINGS IN THE SOFTWARE.
 .. _Khronos OpenGL Extensions: http://www.opengl.org/registry/#arbextspecs
 .. _Khronos OpenGL Enumerants: http://www.opengl.org/registry/#specfiles
 .. _quote: http://www.opengl.org/discussion_boards/ubbthreads.php?ubb=showflat&Number=264041#Post264261
+.. _exact quote: http://www.opengl.org/discussion_boards/ubbthreads.php?ubb=showflat&Number=245032
