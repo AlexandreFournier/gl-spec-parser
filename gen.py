@@ -146,12 +146,13 @@ class Resolver(etree.Resolver):
 				url = urlparse(system_url)
 		if url.scheme == 'http' or url.scheme == 'https':
 			urlPath, urlFile = os.path.split(url.path)
+			urlPath = urlPath.replace("/", os.sep)
 			urlPath = url.hostname + urlPath
 			locPath = os.path.join(CACHE_PATH, urlPath) 
 			locFile = os.path.join(locPath, urlFile)
 			if not os.path.exists(locPath):
 				os.makedirs(locPath)
-			if locFile.endswith('/'):
+			if locFile.endswith(os.sep):
 				locFile += 'INDEX'
 			if not os.path.exists(locFile):
 				print 'retrieving %s' % system_url
