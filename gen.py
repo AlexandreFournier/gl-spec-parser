@@ -550,16 +550,16 @@ class Module:
 			Alias('GLintptr',   'ptrdiff_t'),
 			Alias('GLsizeptr',  'ptrdiff_t')]:
 			alias.toD(writer)
-		if self.functionlists:
+		if self.libraries:
 			writer.writeln()
 			writer.writeln('extern(C)')
 			writer.writeln('{')
 			writer.indent()
-			for i, functionlist in enumerate(self.functionlists):
+			for i, library in enumerate(self.libraries):
 				if i > 0:
 					writer.writeln()
 					writer.writeln()
-				functionlist.toD(writer)
+				library.toD(writer)
 			writer.deindent()
 			writer.writeln('}')
 		if self.extensions:
@@ -610,6 +610,12 @@ class Library(list):
 		for item in self:
 			node.append(item.toXML())
 		return node
+	
+	def toD(self, writer):
+		if len(self) == 0:
+			return
+		for item in self:
+			item.toD(writer)
 
 class ExtensionList(list):
 
@@ -767,7 +773,7 @@ class Function:
 		return type
 
 	def toD(self, writer):
-		params = map(lambda x: '%s %s' % (x[0], x[1]), self.params)
+		params = map(lambda x: '%s %s' % (x['type'], x['name']), self.params)
 		params = ', '.join(params)
 		writer.writeln('%s %s(%s);' % (self.type, self.name, params))
 
@@ -809,7 +815,7 @@ class Writer:
 if __name__ == '__main__':
 
 	from optparse import OptionParser
-	parser = OptionParser(usage="usage: %prog [options] <module> <file>")
+	parser = OptionParser(usage="usage: %prog [options] <module> <gl.xml|gl.d>")
 	parser.add_option('--all',     action='store_true', dest='all',     help='All')
 	parser.add_option('--glenums', action='store_true', dest='glenums', help='OpenGL enums')
 	parser.add_option('--gl2',     action='store_true', dest='gl2',     help='OpenGL 2')
@@ -822,6 +828,11 @@ if __name__ == '__main__':
 
 	if len(args) != 1:
 		parser.print_help()
+		sys.exit(1)
+
+	ext = os.path.splitext(args[0])[-1]
+	if not ext in ['.d', '.xml']:
+		print "Unknown extension try .xml or .d"
 		sys.exit(1)
 
 	module = Module('gl')
@@ -847,9 +858,17 @@ if __name__ == '__main__':
 	if options.all or options.glext:
 		module.digest('glext')
 
-	#module.toD(Writer(args[1]))
-	root = module.toXML()
-	data = etree.tostring(root, pretty_print=True)
-	open(args[0], "w").write(data)
+	if ext == '.d':
+		module.toD(Writer(args[0]))
+		sys.exit(0)
+
+	if ext == '.xml':
+		root = module.toXML()
+		data = etree.tostring(root, pretty_print=True)
+		open(args[0], "w").write(data)
+		sys.exit(0)
+
+sys.exit(2)
+
 
 
