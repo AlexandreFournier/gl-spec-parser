@@ -1,4 +1,3 @@
-
 =============================
 OpenGL_ Specifications Parser
 =============================
@@ -20,15 +19,17 @@ It's aim is mainly to build :
 F.A.Q.
 ======
 
-Why XML instead of `SWIG`_ or any other IDL ?
----------------------------------------------
-
-XML is easy to parse and most languages provide libxml_ bindings or XML parsers. This way it is very easy to generate bindings for other languages even for SWIG_.
-
 Why Khronos does not provide easy-to-parse specifications ?
 -----------------------------------------------------------
 
-Just read this quote_ from the OpenGL_'s discussion board:
+.. role:: red
+
+Khronos DOES finally provide easy-to-parse specifications as of 2013-06-13
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+XML specifications can be downloaded here: https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/gl.xml
+
+This quote_ from the OpenGL_'s discussion board will be left here for historical purposes :
 
         The specs contain much more information than what is (or *can* be) used in the C headers. Some of it is said to be used as part of the build process for various drivers. Other parts can be used to create strongly-typed enumerations (unfortunately, functions defined after OpenGL 1.4 use generic GLenum types instead of exact enums - in OpenTK, we've fixed this by hand for every single function up to 3.2). Finally, there's stuff like glx protocol information, display-list compatibility that is simply not exposed in the C headers.
 
@@ -37,6 +38,12 @@ Just read this quote_ from the OpenGL_'s discussion board:
         FYI, there is no problem defining the "perfect spec format" to capture all .spec information (porting everything to XML is less than a day's worth of work). The issue is that drivers have come to rely on the .spec files to build and the IHVs (rightly or not) resist any change to their build process. (No, I'm not making this up - you can search these forums for the `exact quote`_ if you wish. It was made by Jon Leech around the 3.0 release, if I remember correctly.)
 
         The irony on the matter is this quote on the registry, added around 2007 [edit: `11/17/2006 <http://replay.waybackmachine.org/20061117034351/http://www.opengl.org/registry/>`__]: **"Yes, these databases should be moved to a modern XML-based format. Patience."** :P
+
+Why XML instead of `SWIG`_ or any other IDL ?
+---------------------------------------------
+
+XML is easy to parse and most languages provide libxml_ bindings or XML parsers. This way it is very easy to generate bindings for other languages even for SWIG_.
+
 
 License
 =======
